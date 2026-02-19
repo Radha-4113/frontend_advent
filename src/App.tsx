@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { OvenButton } from './components/OvenButton';
-import { OvenDetailPage } from './components/OvenDetailPage';
 import { Footer } from './components/Footer';
 import { CycleSettingsModal } from './components/CycleSettingsModal';
-import { AlertsPage } from './components/AlertsPage';
-import { ReportsPage } from './components/ReportsPage';
-import { SettingsPage } from './components/SettingsPage';
 import { SplashScreen } from './components/SplashScreen';
+
+const OvenDetailPage = lazy(() => import('./components/OvenDetailPage').then((module) => ({ default: module.OvenDetailPage })));
+const AlertsPage = lazy(() => import('./components/AlertsPage').then((module) => ({ default: module.AlertsPage })));
+const ReportsPage = lazy(() => import('./components/ReportsPage').then((module) => ({ default: module.ReportsPage })));
+const SettingsPage = lazy(() => import('./components/SettingsPage').then((module) => ({ default: module.SettingsPage })));
 
 export interface ChamberData {
   id: number;
@@ -175,7 +176,7 @@ export default function App() {
       <div className="flex-1 flex flex-col">
         <Header />
         <main className="flex-1 p-6">
-          {currentPage === 'dashboard' && (
+          {currentPage === 'dashboard' ? (
             <div className="grid grid-cols-2 gap-5 max-w-[1800px] mx-auto">
               {chambers.map((chamber) => (
                 <OvenButton
@@ -192,19 +193,24 @@ export default function App() {
                 />
               ))}
             </div>
+          ) : (
+            <Suspense fallback={<div className="text-center text-gray-600">Loading page...</div>}>
+              {currentPage === 'alerts' && <AlertsPage />}
+              {currentPage === 'reports' && <ReportsPage />}
+              {currentPage === 'settings' && <SettingsPage />}
+              {currentPage === 'oven' && (
+                <OvenDetailPage
+                  key={selectedOvenId}
+                  chamber={chambers.find((c) => c.id === selectedOvenId) || chambers[0]}
+                  onStart={handleStartCycle}
+                  onStop={handleStopCycle}
+                  onResume={handleResumeCycle}
+                  onSettings={handleOpenSettings}
+                  onSwitchOven={(ovenId) => setSelectedOvenId(ovenId)}
+                />
+              )}
+            </Suspense>
           )}
-          {currentPage === 'alerts' && <AlertsPage />}
-          {currentPage === 'reports' && <ReportsPage />}
-          {currentPage === 'settings' && <SettingsPage />}
-          {currentPage === 'oven' && <OvenDetailPage
-            key={selectedOvenId}
-            chamber={chambers.find((c) => c.id === selectedOvenId) || chambers[0]}
-            onStart={handleStartCycle}
-            onStop={handleStopCycle}
-            onResume={handleResumeCycle}
-            onSettings={handleOpenSettings}
-            onSwitchOven={(ovenId) => setSelectedOvenId(ovenId)}
-          />}
         </main>
         <Footer systemStatus={systemStatus} />
       </div>
